@@ -1,20 +1,36 @@
 import argparse
 import pandas as pd
-from biomart import BiomartServer
+from Bio import Entrez
+import Bio.Entrez.Parser
+import requests
+
+# def get_gene_name(ensembl_id):
+#     Entrez.email = "gerdbizi@mail.utoronto.ca"  # Replace with your email address
+#     Entrez.api_key = "ee1a834186be8c7b72d8e3fcf421bda25208"
+#     handle = Entrez.esearch(db="gene", term=ensembl_id)
+#     record = Entrez.read(handle)
+#     if record["IdList"]:
+#         gene_id = record["IdList"][0]
+#         gene_handle = Entrez.efetch(db="gene", id=gene_id, retmode="xml")
+#         gene_record = Entrez.read(gene_handle)
+#         if gene_record:
+#             gene_name = gene_record[0]["Entrezgene_gene"]["Gene-ref"]["Gene-ref_locus"]
+#             return gene_name
+#     return "Not found"
 
 def get_gene_name(ensembl_id):
-    server = BiomartServer("http://www.ensembl.org/biomart")
-    db = server.databases['ENSEMBL_MART_ENSEMBL']
-    dataset = db.datasets['hsapiens_gene_ensembl']
+    url = f"https://rest.ensembl.org/lookup/id/{ensembl_id}?content-type=application/json"
+    response = requests.get(url)
 
-    response = dataset.search({
-        'attributes': ['external_gene_name'],
-        'filters': {'ensembl_gene_id': ensembl_id}
-    })
-
-    for record in response.iter_lines():
-        gene_name = record.decode('utf-8').split('\t')[0]
-        return gene_name
+    if response.status_code == 200:
+        data = response.json()
+        gene_symbol = data.get("display_name")
+        if not gene_symbol:
+            gene_symbol = "Not found"
+        return gene_symbol
+    else:
+        print("Error occurred while fetching gene symbol.")
+        return "Not found"
 
 def goi(log_fc_file):
     df = pd.read_csv(log_fc_file)
