@@ -1,7 +1,5 @@
 import argparse
 import pandas as pd
-from Bio import Entrez
-import Bio.Entrez.Parser
 import requests
 
 # def get_gene_name(ensembl_id):
