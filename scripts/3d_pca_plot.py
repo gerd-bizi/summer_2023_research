@@ -1,4 +1,3 @@
-import pydeseq2 as pds2
 import numpy as np
 import pandas as pd
 import argparse

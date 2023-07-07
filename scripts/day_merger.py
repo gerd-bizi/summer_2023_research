@@ -4,46 +4,48 @@ import pandas as pd
 import math
 
 def day_merger(directory):
-    #first, we need to get the list of files in the directory in order by their day
-    files = os.listdir(directory)
-    day_numbers = [int(file.split("_")[3]) for file in files]
-    sorted_files = [file for _, file in sorted(zip(day_numbers, files))]
-    #Sort day numbers
-    day_numbers.sort()
-    #print(day_numbers)
-    #print(sorted_files)
-    gene_list = {}
-    dfs = []
-    num_entries = 0
-
-    #read in the dataframes
-    for i in range(len(sorted_files)):
-        dfs.append(pd.read_csv(os.path.join(directory, sorted_files[i]), sep='\t'))
-        #get the length of the dataframe
-        num_entries_temp = len(dfs[i]['gene_id'])
-        if num_entries_temp > num_entries:
-            num_entries = num_entries_temp
+    """
+    Given a directory of count matrices, return a single count matrix with all the data.
+    """
+    #get filepath of the matrix directory
+    if not os.path.isdir(directory):
+        raise ValueError(f'{directory} is not a directory')
+    if len(os.listdir(directory)) == 0:
+        raise ValueError(f'{directory} is empty')
     
-    #go through the list of gene ids
-    for i in range(num_entries):
-        gene_id = dfs[0]['gene_id'][i]
-        #get the TPM values for each day
-        tpm_values = []
-        for x in range(len(dfs)):
-            tpm_values.append(dfs[x]['TPM'][i])
-        gene_list[gene_id] = [gene_id] + tpm_values
+    filenames = []
+
+    for filename in os.listdir(directory):
+        print(filename)
+        if filename.endswith('.csv'):
+            filenames.append(filename)
+
+    if len(filenames) == 0:
+        raise ValueError(f'{directory} contains no csv files')
     
+    #check if the first column heading is gene_id or Gene_id without making dataframe
+    
+    df1 = None
+    #create empty dataframe to append to
+    combined_df = pd.DataFrame()
 
-    #create a dataframe from the log_fc_list
-    df = pd.DataFrame.from_dict(gene_list, orient='index')
-    print(df)
+    for i in range(0, len(filenames)):
+        df1 = pd.read_csv(os.path.join(directory, filenames[i]), index_col='gene_id', delimiter='\t')
+        #name the first column 'gene_id'
+        df1.index.name = 'gene_id'
+        print(df1)
+        #concatenate the two dataframes
+        if i == 0:
+            #add gene_id column to empty dataframe
+            combined_df['gene_id'] = df1['gene_id']
+        #rename the column to the filename
+        #get name of file
+        combined_df[filename[i]] = df1['expected_count']
+    
+    print('done')
 
-    # Update column headers
-    column_headings = ['gene_id'] + ['d{}'.format(day_numbers[i]) for i in range(len(day_numbers))]
-    df.columns = column_headings
-
-    #save the dataframe to a csv file
-    df.to_csv(os.path.join(directory, directory + ".csv"), index=False)
+    #save the combined dataframe to a csv file
+    combined_df.to_csv(os.path.join(directory, 'combined.csv'))
 
 
 if __name__ == '__main__':
@@ -53,7 +55,7 @@ if __name__ == '__main__':
         action="store",
         nargs="+",
         required=True,
-        help="The directory to rename."
+        help="The directory of raw count files to be merged"
     )
     args = parser.parse_args()
     directory = args.directory[0]
